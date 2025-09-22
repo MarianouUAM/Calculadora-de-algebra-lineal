@@ -1,221 +1,196 @@
+# logica_calculadora.py
+import math
 
-def es_casi_cero(x, tol=1e-10):
-    return -tol < x < tol
+def es_casi_cero(numero, tolerancia=1e-4):
+    """Verifica si un número es prácticamente cero"""
+    return -tolerancia < numero < tolerancia
 
-def formatea_num(x, tol=1e-10):
-   
-    if es_casi_cero(x, tol):
-        x = 0.0
-    entero = int(round(x))
-    if abs(x - entero) < 1e-12:
+def formatea_num(numero, tolerancia=1e-4):
+    """Formatea un número para una impresión más limpia"""
+    if es_casi_cero(numero, tolerancia):
+        return "0"
+    entero = int(round(numero))
+    if abs(numero - entero) < 1e-4:
         return str(entero)
-    s = f"{x:.10f}".rstrip("0").rstrip(".")
-    return s if s else "0"
+    string_formateado = f"{numero:.10f}".rstrip("0").rstrip(".")
+    return string_formateado if string_formateado else "0"
 
-def imprime_matriz(M, titulo=None):
-    """
-    Imprime una matriz (lista de listas) con estilo tipo corchetes.
-    Ejemplo:
-    [ 1 0 2 | 3 ]
-    """
+def copia_profunda(matriz):
+    """Copia la misma matriz para no tocar la ingresada"""
+    return [fila[:] for fila in matriz]
+
+def matriz_a_string(matriz, titulo=None):
+    """Convertimos la matriz a texto para imprimirla{}"""
+    if not matriz:
+        return "[ ]"
+    filas = len(matriz)
+    columnas = len(matriz[0])
+    ultima_columna = columnas - 1
+    salida = []
     if titulo:
-        print(titulo)
-    if not M:
-        print("[ ]")
-        return
-    filas = len(M)
-    cols  = len(M[0])
-    ult = cols - 1
-    for i in range(filas):
-        izq = " ".join(formatea_num(M[i][j]) for j in range(ult))
-        der = formatea_num(M[i][ult])
-        print(f"[ {izq} | {der} ]")
+        salida.append(titulo)
+    for indice_fila in range(filas):
+        izquierda = " ".join(formatea_num(matriz[indice_fila][indice_columna]) for indice_columna in range(ultima_columna))
+        derecha = formatea_num(matriz[indice_fila][ultima_columna])
+        salida.append(f"[ {izquierda} | {derecha} ]")
+    return "\n".join(salida)
 
-def copia_profunda(M):
-    """Copia una matriz (lista de listas) para no modificar el original."""
-    return [fila[:] for fila in M]
-
-
-def leer_matriz_aumentada():
-
-    m = int(input("Número de ecuaciones m = "))
-    n = int(input("Número de incógnitas n = "))
-    print("Ingrese cada fila con", n, "coeficientes de A y el término independiente b.")
-    print("Formato: a1 a2 ... y b   (separados por espacios)")
-    aug = []
-    for i in range(m):
-        while True:
-            texto = input(f"Fila {i+1}: ")
-            partes = texto.strip().split()
-            if len(partes) != n + 1:
-                print(f"  -> Debe ingresar exactamente {n+1} valores. Intente de nuevo.")
-                continue
-            try:
-                fila = [float(x) for x in partes]
-                aug.append(fila)
-                break
-            except ValueError:
-                print("  -> Solo se permiten números. Intente de nuevo.")
-    return aug
-
-def intercambia_filas(M, i, j, pasos, mostrar=True):
-    """R_i <-> R_j"""
-    if i == j:
-        return
-    M[i], M[j] = M[j], M[i]
-    msg = f"R{i+1} <-> R{j+1}"
-    pasos.append(msg)
-    if mostrar:
-        print(msg)
-        imprime_matriz(M)
-
-def escala_fila(M, i, esc, pasos, mostrar=True, tol=1e-10):
-    """R_i := (1/esc) * R_i, pensado para normalizar pivote (si esc != 1)."""
-    if es_casi_cero(esc, tol) or abs(esc - 1.0) < 1e-15:
-        return
-    for j in range(len(M[0])):
-        M[i][j] /= esc
-    msg = f"R{i+1} := (1/{formatea_num(esc)}) * R{i+1}"
-    pasos.append(msg)
-    if mostrar:
-        print(msg)
-        imprime_matriz(M)
-
-def combina_fila(M, destino, fuente, factor, pasos, mostrar=True, tol=1e-10):
-    """R_destino := R_destino - factor * R_fuente (para anular entradas)."""
-    if es_casi_cero(factor, tol):
-        return
-    for j in range(len(M[0])):
-        M[destino][j] -= factor * M[fuente][j]
-    signo = "-" if factor >= 0 else "+"
-    fac_abs = formatea_num(abs(factor))
-    msg = f"R{destino+1} := R{destino+1} {signo} {fac_abs} * R{fuente+1}"
-    pasos.append(msg)
-    if mostrar:
-        print(msg)
-        imprime_matriz(M)
-
-
-def gauss_jordan_rref(aug, tol=1e-10, mostrar=True):
-    A = copia_profunda(aug)         
-    m = len(A)                      
-    n = len(A[0]) - 1 if m else 0    
-    pasos = []                       
-    fila_pivote = 0                  
-    if mostrar:
-        print("\nMatriz aumentada ingresada:")
-        imprime_matriz(A)
-
-    for col in range(n):
-        if fila_pivote >= m:
+def resolver_eliminacion_filas(matriz_entrada):
+    """
+    Resuelve un sistema de ecuaciones por eliminación de filas con todos sus pasos
+    """
+    matriz = copia_profunda(matriz_entrada)
+    filas = len(matriz)
+    columnas = len(matriz[0]) - 1
+    pasos = [matriz_a_string(matriz, "Matriz original:")]
+    
+    "Elimacion"
+    fila_pivote = 0
+    for indice_columna in range(columnas):
+        if fila_pivote >= filas:
             break
-
-        mejor = fila_pivote
-        maxabs = abs(A[mejor][col])
-        for i in range(fila_pivote + 1, m):
-            if abs(A[i][col]) > maxabs:
-                maxabs = abs(A[i][col])
-                mejor = i
-
-        if es_casi_cero(maxabs, tol):
+        
+        mejor_fila = fila_pivote
+        while mejor_fila < filas and es_casi_cero(matriz[mejor_fila][indice_columna]):
+            mejor_fila += 1
+        
+        if mejor_fila == filas:
+            pasos.append(f"Paso: La columna {indice_columna+1} es cero. Se salta.")
             continue
+        
+        if mejor_fila != fila_pivote:
+            matriz[fila_pivote], matriz[mejor_fila] = matriz[mejor_fila], matriz[fila_pivote]
+            pasos.append(f"Paso: F{fila_pivote+1} <-> F{mejor_fila+1}")
+            pasos.append(matriz_a_string(matriz))
 
-        intercambia_filas(A, fila_pivote, mejor, pasos, mostrar)
-
-        piv = A[fila_pivote][col]
-        escala_fila(A, fila_pivote, piv, pasos, mostrar, tol)
-
-        for i in range(m):
-            if i == fila_pivote:
-                continue
-            factor = A[i][col]
-            combina_fila(A, i, fila_pivote, factor, pasos, mostrar, tol)
+        for indice_fila in range(fila_pivote + 1, filas):
+            if es_casi_cero(matriz[fila_pivote][indice_columna]): continue
+            factor = matriz[indice_fila][indice_columna] / matriz[fila_pivote][indice_columna]
+            if not es_casi_cero(factor):
+                signo = "-" if factor >= 0 else "+"
+                factor_absoluto = formatea_num(abs(factor))
+                pasos.append(f"Paso: F{indice_fila+1} := F{indice_fila+1} {signo} {factor_absoluto} * F{fila_pivote+1}")
+                for indice_j in range(indice_columna, columnas + 1):
+                    matriz[indice_fila][indice_j] -= factor * matriz[fila_pivote][indice_j]
+                pasos.append(matriz_a_string(matriz))
 
         fila_pivote += 1
 
-    for i in range(m):
-        for j in range(n + 1):
-            if es_casi_cero(A[i][j], tol):
-                A[i][j] = 0.0
+    for indice_fila in range(filas):
+        for indice_columna in range(columnas + 1):
+            if es_casi_cero(matriz[indice_fila][indice_columna]):
+                matriz[indice_fila][indice_columna] = 0.0
+
+    pasos.append("\nMatriz en forma escalonada (Echelon):")
+    pasos.append(matriz_a_string(matriz))
 
     inconsistente = False
-    for i in range(m):
-        todo_cero = True
-        for j in range(n):
-            if not es_casi_cero(A[i][j], tol):
-                todo_cero = False
-                break
-        if todo_cero and not es_casi_cero(A[i][n], tol):
+    for indice_fila in range(filas):
+        fila_ceros = all(es_casi_cero(matriz[indice_fila][indice_columna]) for indice_columna in range(columnas))
+        if fila_ceros and not es_casi_cero(matriz[indice_fila][columnas]):
             inconsistente = True
             break
-
-    pivotes = []
-    for col in range(n):
-        fila_1 = -1
-        ok = True
-        for i in range(m):
-            if abs(A[i][col] - 1.0) < 1e-12:
-                if fila_1 == -1:
-                    fila_1 = i
-                else:
-                    ok = False  
-                    break
-            elif not es_casi_cero(A[i][col], tol):
-                ok = False     
-                break
-        if ok and fila_1 != -1:
-            pivotes.append(col)
-
-    return A, pivotes, inconsistente
-
-
-def clasifica_y_imprime_solucion(rref, pivotes, inconsistente, tol=1e-10):
-   
-    m = len(rref)
-    n = len(rref[0]) - 1 if m else 0
-
+            
     if inconsistente:
-        print("\nSolución: INCONSISTENTE (no existe solución).")
-        return
+        return {"tipo_solucion": "Inconsistente", "solucion": None, "pasos": pasos}
 
-    if len(pivotes) == n:
-        x = [0.0] * n
-        for r in range(m):
-            col_piv = -1
-            for c in range(n):
-                if abs(rref[r][c] - 1.0) < 1e-12:
-                    col_piv = c
-                    break
-            if col_piv != -1:
-                x[col_piv] = rref[r][n]
-        print("\nSolución: ÚNICA")
-        for i, xi in enumerate(x, 1):
-            print(f"x{i} = {formatea_num(xi)}")
-    else:
-
-        libres = [c for c in range(n) if c not in pivotes]
-        nombres_libres = [f"x{idx+1}" for idx in libres]
-        print("\nSolución: INFINITAS (variables libres:", ", ".join(nombres_libres) + ")")
-        print("Puede expresarse en forma paramétrica asignando parámetros a las variables libres.")
-
-
-def main():
-    """Orquesta la lectura, el proceso Gauss-Jordan y la impresión de resultados."""
-    print("=== Resolución de sistemas por Eliminación de Filas (Gauss-Jordan) ===")
+    solucion = [0.0] * columnas
+    conteo_pivotes = 0
+    for indice_fila in range(filas):
+        if any(not es_casi_cero(matriz[indice_fila][indice_columna]) for indice_columna in range(columnas)):
+            conteo_pivotes += 1
     
-    aug = leer_matriz_aumentada()
+    if conteo_pivotes < columnas:
+        return {"tipo_solucion": "Infinita", "solucion": None, "pasos": pasos}
+        
+    for indice_fila in range(columnas - 1, -1, -1):
+        solucion[indice_fila] = matriz[indice_fila][columnas]
+        for indice_j in range(indice_fila + 1, columnas):
+            solucion[indice_fila] -= matriz[indice_fila][indice_j] * solucion[indice_j]
+        solucion[indice_fila] /= matriz[indice_fila][indice_fila]
+        
+    return {"tipo_solucion": "Única", "solucion": [formatea_num(s) for s in solucion], "pasos": pasos}
 
-    imprime_matriz(aug, "\nMatriz aumentada [A|b] capturada:")
+def resolver_gauss_jordan(matriz_entrada):
+    """
+    Resuelve un sistema por Gauss-Jordan enseñando sus pasos.
+    """
+    matriz = copia_profunda(matriz_entrada)
+    filas = len(matriz)
+    columnas = len(matriz[0]) - 1
+    pasos = [matriz_a_string(matriz, "Matriz original:")]
+    columnas_pivote = []
 
-    ver_pasos = input("\n¿Mostrar pasos de eliminación? (s/n): ").strip().lower() == "s"
+    "Elimacion"
+    fila_pivote = 0
+    for indice_columna in range(columnas):
+        if fila_pivote >= filas:
+            break
+        
+        mejor_fila = fila_pivote
+        maximo_absoluto = abs(matriz[mejor_fila][indice_columna])
+        for indice_fila in range(fila_pivote + 1, filas):
+            if abs(matriz[indice_fila][indice_columna]) > maximo_absoluto:
+                maximo_absoluto = abs(matriz[indice_fila][indice_columna])
+                mejor_fila = indice_fila
+        
+        if es_casi_cero(maximo_absoluto):
+            pasos.append(f"\nColumna {indice_columna+1}: No hay pivote (todos ceros). Variable libre: x{indice_columna+1}.")
+            continue
+        
+        if mejor_fila != fila_pivote:
+            pasos.append(f"\nPaso: F{fila_pivote+1} <-> F{mejor_fila+1}")
+            matriz[fila_pivote], matriz[mejor_fila] = matriz[mejor_fila], matriz[fila_pivote]
+            pasos.append(matriz_a_string(matriz))
 
-    rref, pivotes, inconsistente = gauss_jordan_rref(aug, mostrar=ver_pasos)
+        pivote = matriz[fila_pivote][indice_columna]
+        if not es_casi_cero(pivote - 1):
+            pasos.append(f"\nPaso: F{fila_pivote+1} := (1/{formatea_num(pivote)}) * F{fila_pivote+1}")
+            for indice_j in range(indice_columna, columnas + 1):
+                matriz[fila_pivote][indice_j] /= pivote
+            pasos.append(matriz_a_string(matriz))
 
-    imprime_matriz(rref, "\nRREF([A|b]):")
+        pasos.append(f"\nPaso: Anulando otras entradas en la columna {indice_columna+1}.")
+        for indice_fila in range(filas):
+            if indice_fila == fila_pivote:
+                continue
+            factor = matriz[indice_fila][indice_columna]
+            if not es_casi_cero(factor):
+                signo = "-" if factor >= 0 else "+"
+                factor_absoluto = formatea_num(abs(factor))
+                pasos.append(f"   F{indice_fila+1} := F{indice_fila+1} {signo} {factor_absoluto} * F{fila_pivote+1}")
+                for indice_j in range(indice_columna, columnas + 1):
+                    matriz[indice_fila][indice_j] -= factor * matriz[fila_pivote][indice_j]
+        pasos.append(matriz_a_string(matriz))
 
-    clasifica_y_imprime_solucion(rref, pivotes, inconsistente)
+        columnas_pivote.append(indice_columna)
+        fila_pivote += 1
 
-    print("\nProceso finalizado.")
+    for indice_fila in range(filas):
+        for indice_columna in range(columnas + 1):
+            if es_casi_cero(matriz[indice_fila][indice_columna]):
+                matriz[indice_fila][indice_columna] = 0.0
 
-if __name__ == "__main__":
-    main()
+    inconsistente = any(
+        all(es_casi_cero(matriz[indice_fila][indice_columna]) for indice_columna in range(columnas)) and not es_casi_cero(matriz[indice_fila][columnas])
+        for indice_fila in range(filas)
+    )
+    
+    if inconsistente:
+        tipo = "Inconsistente"
+        solucion = None
+    elif len(columnas_pivote) == columnas:
+        tipo = "Única"
+        solucion = [formatea_num(matriz[indice_fila][columnas]) for indice_fila in range(columnas)]
+    else:
+        tipo = "Infinita"
+        solucion = None
+
+    return {
+        "matriz_rref": matriz,
+        "pasos": pasos,
+        "columnas_pivote": [c + 1 for c in columnas_pivote],
+        "variables_libres": [f"x{c+1}" for c in range(columnas) if c not in columnas_pivote],
+        "tipo_solucion": tipo,
+        "solucion": solucion
+    }
