@@ -1,4 +1,4 @@
-Repositorio Clase Aljebra lineal
+Repositorio Clase Algebra lineal
 
 Participantes:
 
